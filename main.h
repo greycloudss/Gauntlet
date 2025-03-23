@@ -1,44 +1,47 @@
 #pragma once
+#include "inject\injector.h"
+#include "disasm\disasm.h"
 #include <iostream>
 #include <vector>
 #include <windows.h>
+#include <stdio.h>
 
 
 
+INJ::Injector* injector = nullptr;
+ASM::Disasm* disasm = nullptr;
 
 namespace MAIN {
     DWORD WINAPI scanThread(LPVOID params) {
-
-
+        disasm = new ASM::Disasm(); //placeholder
         return 0;
     }
 
     DWORD WINAPI injectionThread(LPVOID params) {
-
-
+        injector = new INJ::Injector((LPCSTR)params);
         return 0;
     }
 
+
     class Payload {
         private:
-            std::vector<std::string> args;
+            std::vector<LPCSTR> vArgs;
             std::vector<HANDLE> threads;
-
 
             void convertArgs(int argc, const char* args_arr[]) {
                 for (int i = 0; i < argc; ++i)
-                    this->args.push_back(std::string(args_arr[i]));
-                
+                    this->vArgs.push_back(LPCSTR(args_arr[i]));
             }
 
         public:
             Payload(int argc, const char* args[]) {
-                threads.push_back(CreateThread(NULL, 0, scanThread, NULL, 0, NULL));
                 convertArgs(argc, args);
+                threads.push_back(CreateThread(NULL, 0, injectionThread, (LPVOID)vArgs.at(1), 0, NULL));
+                threads.push_back(CreateThread(NULL, 0, scanThread, NULL, 0, NULL));
             }
 
             ~Payload() {
-                args.clear();
+                vArgs.clear();
                 threads.clear();
             }
     };
