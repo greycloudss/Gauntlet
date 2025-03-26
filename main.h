@@ -9,11 +9,11 @@
 
 
 INJ::Injector* injector = nullptr;
-ASM::Disasm* disasm = nullptr;
+ASM::StatDisasm* sAsm = nullptr;
 
 namespace MAIN {
     DWORD WINAPI scanThread(LPVOID params) {
-        disasm = new ASM::Disasm(); //placeholder
+        sAsm = new ASM::StatDisasm((LPCSTR)params);
         return 0;
     }
 
@@ -36,8 +36,8 @@ namespace MAIN {
         public:
             Payload(int argc, const char* args[]) {
                 convertArgs(argc, args);
-                threads.push_back(CreateThread(NULL, 0, injectionThread, (LPVOID)vArgs.at(1), 0, NULL));
-                threads.push_back(CreateThread(NULL, 0, scanThread, NULL, 0, NULL));
+            //     threads.push_back(CreateThread(NULL, 0, injectionThread, (LPVOID)vArgs.at(1), 0, NULL));
+            //     threads.push_back(CreateThread(NULL, 0, scanThread, (LPVOID)vArgs.at(1), 0, NULL));
             }
 
             ~Payload() {
