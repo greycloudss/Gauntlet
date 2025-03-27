@@ -1,48 +1,84 @@
 #pragma once
 #include "inject\injector.h"
-#include "disasm\disasm.h"
+#include "disasm\dynAsm\disasm.h"
+#include "disasm\statAsm\disasm.h"
 #include <iostream>
 #include <vector>
 #include <windows.h>
 #include <stdio.h>
 
-
-
-INJ::Injector* injector = nullptr;
-ASM::StatDisasm* sAsm = nullptr;
-
 namespace MAIN {
-    DWORD WINAPI scanThread(LPVOID params) {
-        sAsm = new ASM::StatDisasm((LPCSTR)params);
+    INJ::Injector* injector = nullptr;
+    ASM::StatDisasm* sAsm = nullptr;
+    ASM::DynDisasm* dAsm = nullptr;
+
+    DWORD WINAPI statScanThread(LPVOID params) {
+        sAsm = new ASM::StatDisasm(((std::vector<LPCSTR>*)params)->at(0));
+        return 0;
+    }
+
+    DWORD WINAPI dynScanThread(LPVOID params) {
+        sAsm = new ASM::StatDisasm(((std::vector<LPCSTR>*)params)->at(0));
         return 0;
     }
 
     DWORD WINAPI injectionThread(LPVOID params) {
-        injector = new INJ::Injector((LPCSTR)params);
+        injector = new INJ::Injector(((std::vector<LPCSTR>*)params)->at(0));
         return 0;
     }
 
 
+    /* ((std::vector<LPCSTR>*)params)->at(0) looks nasty but for now itll do as a placeholder */
+
     class Payload {
         private:
-            std::vector<LPCSTR> vArgs;
-            std::vector<HANDLE> threads;
 
-            void convertArgs(int argc, const char* args_arr[]) {
-                for (int i = 0; i < argc; ++i)
-                    this->vArgs.push_back(LPCSTR(args_arr[i]));
+            std::vector<LPCSTR>* injArgs = new std::vector<LPCSTR>();
+            std::vector<LPCSTR>* statArgs = new std::vector<LPCSTR>();
+            std::vector<LPCSTR>* dynArgs = new std::vector<LPCSTR>();
+
+            HANDLE iHandle, dHandle, sHandle;
+        
+            void parser(int argc, const char* args[]) {
+                char mode;
+
+                for (int i = 0; i < argc; ++i) {
+                    std::string arg(args[i]);
+
+                    if (arg == "-sAsm") {mode = 0; continue;}
+                    if (arg == "-dAsm") {mode = 1; continue;}
+                    if (arg == "-inj") {mode = 2; continue;}
+                
+                    switch (mode) {
+                        case 0:
+                            statArgs->push_back(args[i]);
+                            break;
+
+                        case 1:
+                            dynArgs->push_back(args[i]);
+                            break;
+
+                        case 2:
+                            injArgs->push_back(args[i]);
+                            break;
+
+                        default: continue;
+                    }
+                }
             }
 
         public:
             Payload(int argc, const char* args[]) {
-                convertArgs(argc, args);
-            //     threads.push_back(CreateThread(NULL, 0, injectionThread, (LPVOID)vArgs.at(1), 0, NULL));
-            //     threads.push_back(CreateThread(NULL, 0, scanThread, (LPVOID)vArgs.at(1), 0, NULL));
+                parser(argc, args);
+
+                if (injArgs->size() != 0) iHandle = CreateThread(NULL, 0, injectionThread, (LPVOID)injArgs, 0, NULL);
+                if (statArgs->size() != 0) sHandle = CreateThread(NULL, 0, statScanThread, (LPVOID)statArgs, 0, NULL);
+                if (dynArgs->size() != 0) dHandle = CreateThread(NULL, 0, statScanThread, (LPVOID)dynArgs, 0, NULL);
+
+                /* will add multi injections, static disasm, and dynamic disasm*/
             }
 
             ~Payload() {
-                vArgs.clear();
-                threads.clear();
             }
     };
 };
