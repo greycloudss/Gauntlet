@@ -10,20 +10,21 @@
 
 ```
 Gauntlet/
-├── inject/             # DLL injection system
+├── inject/                 # DLL injection system
 │   ├── injector.h
 │   └── injector.cpp
 ├── disasm/
-│   ├── dynAsm/         # Dynamic disassembler (hooking live processes)
+│   ├── Mnemonics.h         # Opcode and addressing mode tables
+│   ├── triple.h            # Utility template for grouped values
+│   ├── dynAsm/             # Dynamic disassembler (hooking live processes)
+│   │   ├── typeEnum.h
 │   │   ├── disasm.h
 │   │   └── disasm.cpp
-│   └── statAsm/        # Static disassembler (binary analysis)
+│   └── statAsm/            # Static disassembler (binary analysis)
 │       ├── disasm.h
 │       └── disasm.cpp
-├── Mnemonics.h         # Opcode and addressing mode tables
-├── triple.h            # Utility template for grouped values
-├── main.cpp            # Entry point
-├── main.h              # Runtime and threading logic
+├── main.cpp                # Entry point
+├── main.h                  # Runtime and threading logic
 └── README.md
 ```
 
@@ -32,58 +33,53 @@ Gauntlet/
 ## Features
 
 - DLL injection via `CreateRemoteThread` + `LoadLibrary`
-- Static disassembly of binary files
-- Dynamic scanning of running processes
-- Opcode decoding and ModRM analysis
-- Modular architecture
-- Multi-threaded command-line parsing and execution
+- Static disassembly of binary `.text` sections only
+- Dynamic scanning of live processes (planned)
+- Opcode decoding and ModRM resolution
+- Smart decoding with junk filtering
+- Multi-threaded argument parsing
+- Modular, pluggable architecture
 
 ---
 
 ## Usage
 
 ### Build (Linux/MinGW/Windows)
-Requires a C++20 compatible compiler.
+Requires a C++17 compatible compiler.
 
 ```bash
-# Example using g++
-g++ -std=c++20 -g \
-    main.cpp \
-    inject/injector.cpp \
-    disasm/dynAsm/disasm.cpp \
-    disasm/statAsm/disasm.cpp \
-    -o gauntlet.exe
+# Build example
+g++ -std=c++17 -g main.cpp inject/injector.cpp disasm/dynAsm/disasm.cpp disasm/statAsm/disasm.cpp -o gauntlet.exe -static-libgcc -static-libstdc++
 ```
 
 ### Run
 ```bash
-./gauntlet.exe -inj target.exe -sAsm binary.bin -dAsm process.exe
+./gauntlet.exe -inj target.exe -sAsm binary.exe -dAsm process.exe
 ```
 
-- `-inj <exe>`: inject DLL into a target process
-- `-sAsm <bin>`: run static disassembly on a file
-- `-dAsm <exe>`: attach to and scan a live process
+- `-inj <exe>`: Inject DLL into a target process
+- `-sAsm <exe>`: Run static disassembly on a PE binary
+- `-dAsm <exe>`: (Planned) Attach and scan a live process
 
 ---
 
-## Notes
+## Output
 
-- The current implementation assumes the DLL is named `debugger.dll`.
-- Argument parsing is thread-dispatched; each action runs in a separate thread.
-- Output is logged to standard output.
+- Static disassembly will print to console and output to `disasm_<file>.txt`
+- Only valid x86/x64 instructions from the `.text` section are processed
+- Invalid opcodes or excessive junk are skipped
 
 ---
 
 ## Roadmap
 
-- Memory patching and live write-back
-- Improved mnemonic resolution
-- Plugin-style instruction handlers
-- UI overlay for disassembly visualization
+- Live memory patching and write-back
+- Advanced opcode/mnemonic plugins
+- Visual frontend for instruction tracing
+- Signature scanning + pattern matching
 
 ---
 
 ## License
 
 MIT License — feel free to fork, modify, and contribute.
-
