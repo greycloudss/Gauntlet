@@ -6,6 +6,7 @@ namespace ASM {
         private:
             LPCSTR fName;
             std::vector<int> binary;
+            std::ofstream ot;
 
             inline int getMod(int val);
             inline int getReg(int val);

@@ -14,6 +14,7 @@ namespace MAIN {
 
     DWORD WINAPI statScanThread(LPVOID params) {
         sAsm = new ASM::StatDisasm(((std::vector<LPCSTR>*)params)->at(0));
+        sAsm->disassemble();
         return 0;
     }
 
@@ -24,6 +25,7 @@ namespace MAIN {
 
     DWORD WINAPI injectionThread(LPVOID params) {
         injector = new INJ::Injector(((std::vector<LPCSTR>*)params)->at(0));
+        std::cout << injector->inject();
         return 0;
     }
 
@@ -40,7 +42,7 @@ namespace MAIN {
             HANDLE iHandle, dHandle, sHandle;
         
             void parser(int argc, const char* args[]) {
-                char mode;
+                char mode = {};
 
                 for (int i = 0; i < argc; ++i) {
                     std::string arg(args[i]);
@@ -68,17 +70,29 @@ namespace MAIN {
             }
 
         public:
-            Payload(int argc, const char* args[]) {
-                parser(argc, args);
-
-                if (injArgs->size() != 0) iHandle = CreateThread(NULL, 0, injectionThread, (LPVOID)injArgs, 0, NULL);
-                if (statArgs->size() != 0) sHandle = CreateThread(NULL, 0, statScanThread, (LPVOID)statArgs, 0, NULL);
-                if (dynArgs->size() != 0) dHandle = CreateThread(NULL, 0, statScanThread, (LPVOID)dynArgs, 0, NULL);
-
-                /* will add multi injections, static disasm, and dynamic disasm*/
+        Payload(int argc, const char* args[]) {
+            parser(argc, args);
+        
+            if (injArgs->size() != 0) {
+                iHandle = CreateThread(NULL, 0, injectionThread, (LPVOID)injArgs, 0, NULL);
+                WaitForSingleObject(iHandle, INFINITE);
             }
+        
+            if (statArgs->size() != 0) sHandle = CreateThread(NULL, 0, statScanThread, (LPVOID)statArgs, 0, NULL);
+            
+    
+            if (dynArgs->size() != 0) dHandle = CreateThread(NULL, 0, dynScanThread, (LPVOID)dynArgs, 0, NULL);
+            
+        
+            std::cout << "[Info] press ENTER to exit\n";
+            std::cin.get();
+        }
 
             ~Payload() {
+                delete injArgs;
+                delete statArgs;
+                delete dynArgs;
             }
+            
     };
 };

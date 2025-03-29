@@ -1,5 +1,7 @@
 #pragma once
 #include "../Mnemonics.h"
+#include "../triple.h"
+#include "typeEnum.h"
 
 /*
 **  this thing will manipulate memory of the hooked process
@@ -27,7 +29,8 @@ namespace ASM {
             template<typename type> type* rpm(uintptr_t address, int offset, int count, type value);
 
             template<typename type> bool wpm(uintptr_t address, type value);
-            template<typename type> bool* wpm(uintptr_t* addressList, int* offsets, type* values);
+            bool decastPtr(triple<uintptr_t, void*, TypeE>& trpl);
+            std::vector<bool> wpm(std::vector<triple<uintptr_t, void*, TypeE>> writes);
 
             ~DynDisasm();
     };

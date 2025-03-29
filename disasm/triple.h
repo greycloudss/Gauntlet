@@ -1,11 +1,5 @@
 #include <iostream>
 
-/*
-
-will be using void* in the dynAsm to get around this
-
-*/
-
 template <typename A, typename B, typename C> struct triple {
     A aVal;
     B bVal;
@@ -32,11 +26,5 @@ template <typename A, typename B, typename C> struct triple {
 
             default: throw std::cout << "\n\n[ERROR] bad argument in the triple \nflag: " << (int) flag << "\nval: " << val;
         }
-    }
-
-    ~triple() {
-        delete aVal;
-        delete bVal;
-        delete cVal;
     }
 };
