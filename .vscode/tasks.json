@@ -1,0 +1,28 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+      {
+        "label": "Build Gauntlet (C++20)",
+        "type": "shell",
+        "command": "g++",
+        "args": [
+          "-std=c++17",
+          "-g",
+          "main.cpp",
+          "inject/injector.cpp",
+          "disasm/dynAsm/disasm.cpp",
+          "disasm/statAsm/disasm.cpp",
+          "-o",
+          "gauntlet.exe",
+          "-static-libgcc",
+          "-static-libstdc++"
+        ],
+        "group": {
+          "kind": "build",
+          "isDefault": true
+        },
+        "problemMatcher": ["$gcc"]
+      }
+    ]
+  }
+  
