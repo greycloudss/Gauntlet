@@ -30,8 +30,8 @@ namespace ASM {
             DynDisasm(LPCSTR process);
             template<typename valType> TypeE typeViaID(valType val);
 
-            template<typename type> type rpm(uintptr_t address, type value);
-            template<typename type> type* rpm(uintptr_t address, int offset, int count, type value);
+            template<typename type> type rpm(uintptr_t address);
+            template<typename type> triple<uintptr_t, void*, TypeE>* rpm(uintptr_t address[], int offsets[], int count);
 
             template<typename type> bool wpm(uintptr_t address, type value);
             bool decastPtr(triple<uintptr_t, void*, TypeE>& trpl);

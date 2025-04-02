@@ -133,12 +133,16 @@ namespace ASM {
         CloseHandle(snapshot);
     }
 
-    template<typename type> type DynDisasm::rpm(uintptr_t address, type value) {
+    template<typename type> type DynDisasm::rpm(uintptr_t address) {
         type buffer{};
         SIZE_T bytesRead;
+        SIZE_T written;
+        DWORD oldProtect;
 
+        VirtualProtectEx(pHandle, (LPVOID)address, sizeof(type), PAGE_READWRITE, &oldProtect);
         bool returnB = ReadProcessMemory(pHandle, (LPVOID)address, &buffer, sizeof(buffer), &bytesRead);
-
+        VirtualProtectEx(pHandle, (LPVOID)address, sizeof(type), oldProtect, &oldProtect);
+        
         if (bytesRead <= 0 || !returnB) {
             std::cout << "[Dynamic Disasm] [Error] Write failed at address and value of: " << address << "\n\n";
             return type();
@@ -147,8 +151,45 @@ namespace ASM {
         return buffer;
     }
 
-    template<typename type> type* DynDisasm::rpm(uintptr_t address, int offset, int count, type value) {
-        return {};
+
+    /* really ugly and i dont want to use this but for now this is a temp fix. im really sorry*/
+    template<typename valType> TypeE typeViaID(valType val) {
+        const std::type_info& t = typeid(val);
+        if (t == typeid(int))                                       return INTn;
+        if (t == typeid(float))                                     return FLOATn;
+        if (t == typeid(double))                                    return DOUBLEn;
+        if (t == typeid(short))                                     return SHORTn;
+        if (t == typeid(long))                                      return LONGn;
+        if (t == typeid(unsigned short))                            return SHORTn;
+        if (t == typeid(unsigned int))                              return UNSIGNED;
+        if (t == typeid(unsigned long))                             return ULONGn;
+        if (t == typeid(int64_t))                                   return INT64n;
+        if (t == typeid(uint64_t))                                  return UINT64n;
+        if (t == typeid(char))                                      return CHARn;
+        if (t == typeid(wchar_t))                                   return WCHARn;
+        if (t == typeid(const char*) || t == typeid(char*))         return CHARPTR;
+        if (t == typeid(const wchar_t*) || t == typeid(wchar_t*))   return WCHARPTR;
+        if (t == typeid(void*))                                     return VOIDPTR;
+        if (t == typeid(bool))                                      return BOOLn;
+        if (t == typeid(std::string))                               return STRING;
+    
+        return UNKNOWN;
+    }
+
+    template<typename type> triple<uintptr_t, void*, TypeE>* DynDisasm::rpm(uintptr_t address[], int offsets[], int count) {
+        triple<uintptr_t, void*, TypeE>* returnT = (triple<uintptr_t, void*, TypeE>*) malloc(sizeof(triple<uintptr_t, void*, TypeE>) * count);
+
+        int size = sizeof(address) / sizeof(uintptr_t);
+        
+        for (int i = 0; i < size; ++i) {
+            if (address[i] == NULL || offsets == nullptr) break;
+
+            type val = rpm(address[i] + offsets[i]);
+
+            returnT[i] = triple(address[i] + offsets[i], (void*)val, typeViaID(val));
+        }
+        
+        return returnT[i];
     }
 
     template<typename type> bool DynDisasm::wpm(uintptr_t address, type value) {
