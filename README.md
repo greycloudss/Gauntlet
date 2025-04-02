@@ -74,7 +74,7 @@ Requires a C++17 compatible compiler.
 # Example build using MinGW-w64
 g++ -std=c++17 -g \
     main.cpp \
-    gui/menu.cpp
+    gui/menu.cpp \
     inject/injector.cpp \
     disasm/dynAsm/disasm.cpp \
     disasm/statAsm/disasm.cpp \
