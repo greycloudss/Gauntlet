@@ -3,6 +3,8 @@
 #include <stdint.h>
 #include <ctype.h>
 
+#define isascii_text(c) (isprint(c) || (c) == '\n' || (c) == '\r' || (c) == '\t')
+
 namespace ASM {
     BOOL DynDisasm::isValidPointer(uintptr_t ptr) {
         MEMORY_BASIC_INFORMATION memInfo;
@@ -10,17 +12,16 @@ namespace ASM {
         return memInfo.State == MEM_COMMIT && (memInfo.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE | PAGE_READONLY));
     }
 
-    void DynDisasm::AnalyzeMemory(HANDLE process, char* buffer, uintptr_t baseAddr, SIZE_T size) {
+    void DynDisasm::AnalyzeMemory(char* buffer, uintptr_t baseAddr, SIZE_T size) {
         SIZE_T i = 0;
     
         while (i < size) {
-            if (isprint(buffer[i]) && isprint(buffer[i + 1])) {
+            if (isascii_text(buffer[i]) && isascii_text(buffer[i + 1])) {
                 SIZE_T strLen = 0;
-                while (i + strLen < size && isprint(buffer[i + strLen]))
-                    strLen++;
-    
-                printf("0x%p - 0x%p  [STRING %llu bytes] \"%.*s\"\n",
-                    (void*)(baseAddr + i), (void*)(baseAddr + i + strLen), strLen, (int)strLen, buffer + i);
+
+                while (i + strLen < size && isascii_text(buffer[i + strLen]) && strLen < 256) strLen++;
+
+                printf("0x%p |       size = %llu | [STRING] \"%.*s\"\n", (void*)(baseAddr + i), strLen, (int)strLen, buffer + i);
                 i += strLen;
                 continue;
             }
@@ -29,8 +30,7 @@ namespace ASM {
                 uintptr_t ptr;
                 memcpy(&ptr, buffer + i, sizeof(ptr));
                 if (isValidPointer( ptr)) {
-                    printf("0x%p - 0x%p  [POINTER] 0x%p\n",
-                        (void*)(baseAddr + i), (void*)(baseAddr + i + 8), (void*)ptr);
+                    printf("0x%p |       size = 8 | [POINTER] 0x%p\n", (void*)(baseAddr + i + 8));
                     i += 8;
                     continue;
                 }
@@ -39,9 +39,8 @@ namespace ASM {
             if (i + 4 <= size) {
                 int val;
                 memcpy(&val, buffer + i, 4);
-                if (val >= -1000000 && val <= 1000000) {
-                    printf("0x%p - 0x%p  [INT] %d\n",
-                        (void*)(baseAddr + i), (void*)(baseAddr + i + 4), val);
+                if (val >= -1000000 && val <= 1000000 && val != 0) {
+                    printf("0x%p |       size = 4 | [INT] %d\n", (void*)(baseAddr + i), val);
                     i += 4;
                     continue;
                 }
@@ -51,9 +50,8 @@ namespace ASM {
             if (i + 4 <= size) {
                 float f;
                 memcpy(&f, buffer + i, 4);
-                if (f > -1e6 && f < 1e6 && f == f) {
-                    printf("0x%p - 0x%p  [FLOAT] %.3f\n",
-                        (void*)(baseAddr + i), (void*)(baseAddr + i + 4), f);
+                if (f > -1e6 && f < 1e6 && f == f && f != 0.0f) {
+                    printf("0x%p |       size = 4 | [FLOAT] %.3f\n", (void*)(baseAddr + i), f);
                     i += 4;
                     continue;
                 }
@@ -75,24 +73,15 @@ namespace ASM {
         while (basePtr < maxAddr && VirtualQueryEx(pHandle, basePtr, &memInfo, sizeof(memInfo))) {
             if (memInfo.State == MEM_COMMIT && (memInfo.Protect & PAGE_READWRITE)) {
                 SIZE_T regionSize = memInfo.RegionSize;
-                char* regionBase = (char*)memInfo.BaseAddress;
+                PVOID regionBase = memInfo.BaseAddress;
                 char* buffer = (char*)malloc(regionSize);
 
                 SIZE_T bytesRead;
-                if (ReadProcessMemory(pHandle, regionBase, buffer, regionSize, &bytesRead)) {
-                    for (SIZE_T i = 0; i + 4 <= bytesRead; i += 4) {
-                        int iVal;
-                        float fVal;
-                        memcpy(&iVal, buffer + i, sizeof(int));
-                        memcpy(&fVal, buffer + i, sizeof(float));
-                        
-                        if (iVal == 0 && fVal == 0) continue;
 
-                        uintptr_t addr = (uintptr_t)regionBase + i;
-                        printf("0x%p  int: %d  float: %.3f\n", (void*)addr, iVal, fVal);
-                    }
-                }
+                
 
+                if (ReadProcessMemory(pHandle, regionBase, buffer, regionSize, &bytesRead)) AnalyzeMemory(buffer, reinterpret_cast<uintptr_t>(regionBase), regionSize);
+                
                 free(buffer);
             }
 
@@ -104,7 +93,6 @@ namespace ASM {
         getPid();
         
         pHandle = OpenProcess(PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD, FALSE, pid);
-
 
         do {
             scan();
@@ -179,17 +167,16 @@ namespace ASM {
     template<typename type> triple<uintptr_t, void*, TypeE>* DynDisasm::rpm(uintptr_t address[], int offsets[], int count) {
         triple<uintptr_t, void*, TypeE>* returnT = (triple<uintptr_t, void*, TypeE>*) malloc(sizeof(triple<uintptr_t, void*, TypeE>) * count);
 
-        int size = sizeof(address) / sizeof(uintptr_t);
         
-        for (int i = 0; i < size; ++i) {
-            if (address[i] == NULL || offsets == nullptr) break;
+        for (int i = 0; i < count; ++i) {
+            if (!address[i] || offsets == nullptr) break;
 
-            type val = rpm(address[i] + offsets[i]);
+            type val = rpm<triple<uintptr_t, void*, TypeE>>(address[i] + offsets[i]);
 
             returnT[i] = triple(address[i] + offsets[i], (void*)val, typeViaID(val));
         }
         
-        return returnT[i];
+        return returnT;
     }
 
     template<typename type> bool DynDisasm::wpm(uintptr_t address, type value) {

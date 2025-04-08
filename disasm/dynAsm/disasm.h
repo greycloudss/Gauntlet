@@ -6,13 +6,7 @@
 #include <tlhelp32.h>
 #include <stdio.h>
 #include <ctype.h>
-/*
-**  this thing will manipulate memory of the hooked process
-**
-**  Hook this program to the wanted process
-**  
-**  Try to make this with the idea of multiple program scanning
-*/
+
 
 namespace ASM {
     class DynDisasm {
@@ -23,7 +17,7 @@ namespace ASM {
             
             void getPid();
             BOOL isValidPointer(uintptr_t ptr);
-            void AnalyzeMemory(HANDLE process, char* buffer, uintptr_t baseAddr, SIZE_T size);
+            void AnalyzeMemory(char* buffer, uintptr_t baseAddr, SIZE_T size);
 
         public:
             inline void scan();
