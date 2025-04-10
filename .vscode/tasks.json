@@ -12,16 +12,33 @@
           "inject/injector.cpp",
           "disasm/dynAsm/disasm.cpp",
           "disasm/statAsm/disasm.cpp",
+          "gui/menu.cpp",
+          "gui/imgui/imgui.cpp",
+          "gui/imgui/imgui_draw.cpp",
+          "gui/imgui/imgui_widgets.cpp",
+          "gui/imgui/imgui_tables.cpp",
+          "gui/imgui/imgui_demo.cpp",
+          "gui/imgui/imgui_impl_dx11.cpp",
+          "gui/imgui/imgui_impl_win32.cpp",
           "-o",
           "gauntlet.exe",
           "-static-libgcc",
-          "-static-libstdc++"
+          "-static-libstdc++",
+          "-ld3d11",
+          "-ldxgi",
+          "-ldxguid",
+          "-ldinput8",
+          "-ld3dcompiler",
+          "-ldwmapi",
+          "-luser32",
+          "-lgdi32"
         ],
         "group": {
           "kind": "build",
           "isDefault": true
         },
-        "problemMatcher": ["$gcc"]
+        "problemMatcher": ["$gcc"],
+        
       }
     ]
   }

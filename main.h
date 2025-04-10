@@ -2,6 +2,7 @@
 #include "inject\injector.h"
 #include "disasm\dynAsm\disasm.h"
 #include "disasm\statAsm\disasm.h"
+#include "gui\menu.h"
 #include <iostream>
 #include <vector>
 #include <windows.h>
@@ -70,7 +71,6 @@ namespace MAIN {
                     }
                 }
             }
-
         public:
 
             void OpenDebugConsole() {
@@ -85,7 +85,7 @@ namespace MAIN {
                 parser(argc, args);
             
                 OpenDebugConsole();
-            
+                
                 if (injArgs->size() != 0) {
                     iHandle = CreateThread(NULL, 0, injectionThread, (LPVOID)injArgs, 0, NULL);
                     WaitForSingleObject(iHandle, INFINITE);
@@ -95,6 +95,16 @@ namespace MAIN {
                 
             
                 if (dynArgs->size() != 0) dHandle = CreateThread(NULL, 0, dynScanThread, (LPVOID)dynArgs, 0, NULL);
+                
+                //MENU::dAsm = dAsm;
+                //MENU::sAsm = sAsm;
+                //MENU::injector = injector;
+//
+                //CreateThread(nullptr, 0, [](LPVOID) -> DWORD {
+                //    MENU::Main(GetModuleHandle(nullptr));
+                //    return 0;
+                //}, nullptr, 0, nullptr);
+                
 
                 WaitForSingleObject(dHandle, INFINITE);
                 WaitForSingleObject(sHandle, INFINITE);
