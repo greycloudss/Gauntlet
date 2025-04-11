@@ -14,19 +14,19 @@ namespace MAIN {
     ASM::DynDisasm* dAsm = nullptr;
 
     DWORD WINAPI statScanThread(LPVOID params) {
-        sAsm = new ASM::StatDisasm(((std::vector<LPCSTR>*)params)->at(0));
         sAsm->disassemble();
         return 0;
     }
 
     DWORD WINAPI dynScanThread(LPVOID params) {
-        dAsm = new ASM::DynDisasm(((std::vector<LPCSTR>*)params)->at(0));
-
+        do {
+            dAsm->scan();
+            Sleep(10000);
+        } while (true);
         return 0;
     }
 
     DWORD WINAPI injectionThread(LPVOID params) {
-        injector = new INJ::Injector(((std::vector<LPCSTR>*)params)->at(0));
         std::cout << injector->inject();
         return 0;
     }
@@ -87,23 +87,26 @@ namespace MAIN {
                 OpenDebugConsole();
                 
                 if (injArgs->size() != 0) {
+                    injector = new INJ::Injector(injArgs->at(0));
                     iHandle = CreateThread(NULL, 0, injectionThread, (LPVOID)injArgs, 0, NULL);
-                    WaitForSingleObject(iHandle, INFINITE);
                 }
             
-                if (statArgs->size() != 0) sHandle = CreateThread(NULL, 0, statScanThread, (LPVOID)statArgs, 0, NULL);
-                
+                if (statArgs->size() != 0) {
+                    sAsm = new ASM::StatDisasm(statArgs->at(0));
+                    sHandle = CreateThread(NULL, 0, statScanThread, NULL, 0, NULL);
+                }
             
-                if (dynArgs->size() != 0) dHandle = CreateThread(NULL, 0, dynScanThread, (LPVOID)dynArgs, 0, NULL);
+                if (dynArgs->size() != 0) {
+                    dAsm = new ASM::DynDisasm(dynArgs->at(0));
+                    dHandle = CreateThread(NULL, 0, dynScanThread, NULL, 0, NULL);
+                }
+
+                MENU::setObjects(injector, sAsm, dAsm);
                 
-                //MENU::dAsm = dAsm;
-                //MENU::sAsm = sAsm;
-                //MENU::injector = injector;
-//
-                //CreateThread(nullptr, 0, [](LPVOID) -> DWORD {
-                //    MENU::Main(GetModuleHandle(nullptr));
-                //    return 0;
-                //}, nullptr, 0, nullptr);
+                CreateThread(nullptr, 0, [](LPVOID) -> DWORD {
+                    MENU::Main(GetModuleHandle(nullptr));
+                    return 0;
+                }, nullptr, 0, nullptr);
                 
 
                 WaitForSingleObject(dHandle, INFINITE);

@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <cstdint>
 #include <utility>
+#include <mutex>
 
 using byte = unsigned char;
 

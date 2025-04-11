@@ -21,7 +21,11 @@ namespace ASM {
 
                 while (i + strLen < size && isascii_text(buffer[i + strLen]) && strLen < 256) strLen++;
 
-                printf("0x%p |       size = %llu | [STRING] \"%.*s\"\n", (void*)(baseAddr + i), strLen, (int)strLen, buffer + i);
+                char formatted[512];
+                printf("0x%p |       size = %llu | [STRING] \"%.*s\"", (void*)(baseAddr + i), strLen, (int)strLen, buffer + i);
+                snprintf(formatted, sizeof(formatted), "0x%p |       size = %llu | [STRING] \"%.*s\"", (void*)(baseAddr + i), strLen, (int)strLen, buffer + i);
+                std::lock_guard<std::mutex> lock(toPrintMutex);
+                toPrint.push_back(std::string(formatted));
                 i += strLen;
                 continue;
             }
@@ -30,7 +34,11 @@ namespace ASM {
                 uintptr_t ptr;
                 memcpy(&ptr, buffer + i, sizeof(ptr));
                 if (isValidPointer( ptr)) {
+                    char formatted[512];
                     printf("0x%p |       size = 8 | [POINTER] 0x%p\n", (void*)(baseAddr + i + 8));
+                    snprintf(formatted, sizeof(formatted), "0x%p |       size = 8 | [POINTER] 0x%p\n", (void*)(baseAddr + i + 8));
+                    std::lock_guard<std::mutex> lock(toPrintMutex);
+                    toPrint.push_back(std::string(formatted));
                     i += 8;
                     continue;
                 }
@@ -40,7 +48,11 @@ namespace ASM {
                 int val;
                 memcpy(&val, buffer + i, 4);
                 if (val >= -1000000 && val <= 1000000 && val != 0) {
+                    char formatted[512];
                     printf("0x%p |       size = 4 | [INT] %d\n", (void*)(baseAddr + i), val);
+                    snprintf(formatted, sizeof(formatted), "0x%p |       size = 4 | [INT] %d\n", (void*)(baseAddr + i), val);
+                    std::lock_guard<std::mutex> lock(toPrintMutex);
+                    toPrint.push_back(std::string(formatted));
                     i += 4;
                     continue;
                 }
@@ -51,7 +63,11 @@ namespace ASM {
                 float f;
                 memcpy(&f, buffer + i, 4);
                 if (f > -1e6 && f < 1e6 && f == f && f != 0.0f) {
+                    char formatted[512];
                     printf("0x%p |       size = 4 | [FLOAT] %.3f\n", (void*)(baseAddr + i), f);
+                    snprintf(formatted, sizeof(formatted), "0x%p |       size = 4 | [FLOAT] %.3f\n", (void*)(baseAddr + i), f);
+                    std::lock_guard<std::mutex> lock(toPrintMutex);
+                    toPrint.push_back(std::string(formatted));
                     i += 4;
                     continue;
                 }
@@ -61,43 +77,10 @@ namespace ASM {
         }
     }
 
-    inline void DynDisasm::scan() {
-        SYSTEM_INFO sysInfo;
-        GetSystemInfo(&sysInfo);
-
-        char* basePtr = (char*)sysInfo.lpMinimumApplicationAddress;
-        char* maxAddr = (char*)sysInfo.lpMaximumApplicationAddress;
-
-        MEMORY_BASIC_INFORMATION memInfo;
-
-        while (basePtr < maxAddr && VirtualQueryEx(pHandle, basePtr, &memInfo, sizeof(memInfo))) {
-            if (memInfo.State == MEM_COMMIT && (memInfo.Protect & PAGE_READWRITE)) {
-                SIZE_T regionSize = memInfo.RegionSize;
-                PVOID regionBase = memInfo.BaseAddress;
-                char* buffer = (char*)malloc(regionSize);
-
-                SIZE_T bytesRead;
-
-                
-
-                if (ReadProcessMemory(pHandle, regionBase, buffer, regionSize, &bytesRead)) AnalyzeMemory(buffer, reinterpret_cast<uintptr_t>(regionBase), regionSize);
-                
-                free(buffer);
-            }
-
-            basePtr = (char*)memInfo.BaseAddress + memInfo.RegionSize;
-        }
-    }
-
     DynDisasm::DynDisasm(LPCSTR process) : process(process) {
         getPid();
         
         pHandle = OpenProcess(PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD, FALSE, pid);
-
-        do {
-            scan();
-            Sleep(10000);
-        } while (true);
     }
 
     void DynDisasm::getPid() {

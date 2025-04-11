@@ -20,7 +20,37 @@ namespace ASM {
             void AnalyzeMemory(char* buffer, uintptr_t baseAddr, SIZE_T size);
 
         public:
-            inline void scan();
+            std::vector<std::string> toPrint;
+            std::mutex toPrintMutex;
+
+            inline void scan() {
+                SYSTEM_INFO sysInfo;
+                GetSystemInfo(&sysInfo);
+        
+                char* basePtr = (char*)sysInfo.lpMinimumApplicationAddress;
+                char* maxAddr = (char*)sysInfo.lpMaximumApplicationAddress;
+        
+                MEMORY_BASIC_INFORMATION memInfo;
+        
+                while (basePtr < maxAddr && VirtualQueryEx(pHandle, basePtr, &memInfo, sizeof(memInfo))) {
+                    if (memInfo.State == MEM_COMMIT && (memInfo.Protect & PAGE_READWRITE)) {
+                        SIZE_T regionSize = memInfo.RegionSize;
+                        PVOID regionBase = memInfo.BaseAddress;
+                        char* buffer = (char*)malloc(regionSize);
+        
+                        SIZE_T bytesRead;
+        
+                        
+        
+                        if (ReadProcessMemory(pHandle, regionBase, buffer, regionSize, &bytesRead)) AnalyzeMemory(buffer, reinterpret_cast<uintptr_t>(regionBase), regionSize);
+                        
+                        free(buffer);
+                    }
+        
+                    basePtr = (char*)memInfo.BaseAddress + memInfo.RegionSize;
+                }
+            }
+            
             DynDisasm(LPCSTR process);
             template<typename valType> TypeE typeViaID(valType val);
 
