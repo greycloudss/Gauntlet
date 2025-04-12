@@ -31,7 +31,41 @@
 - **Debug Console Logging**  
   A dedicated debug console is automatically attached for all output, ensuring visibility of runtime logs across threads.
 
+- **ImGui GUI Interface**  
+  Fully interactive interface built with ImGui, including tabbed panels, list boxes, editable fields, and color theming.
+
+- **Theme Customization**  
+  Full color customization system using `ImGui::ColorEdit4`, with save/load to config file and runtime application.
+
+- **Type-Agnostic Value Conversion**  
+  Read/write logic automatically converts between `int`, `float`, `std::string`, and `uintptr_t` based on selected type.
+
+- **Command-Line Flag Support**  
+  Launch modes configurable via flags like `-sAsm`, `-dAsm`, `-m`, `-nc` to toggle between static/dynamic/injection/menu/console modes.
+  
+- **Runtime Logging to UI List**  
+  Static and dynamic disassembly results are displayed directly in the UI with live updates.
+
 ---
+
+## Dependencies
+
+The project depends on the following libraries and system APIs:
+
+| Dependency         | Description                                                                 |
+|--------------------|-----------------------------------------------------------------------------|
+| **ImGui**          | Immediate Mode GUI library used for rendering the interface (`gui/imgui/`)  |
+| **DirectX 11**     | Used as the backend for ImGui rendering                                     |
+| **Windows API**    | Core functionality like window management, threading, process/memory access |
+| **C++17 STL**      | Includes `<thread>`, `<mutex>`, `<vector>`, `<string>`, `<filesystem>`, etc |
+
+### Build-Time Requirements
+- **g++** with C++17 support (tested with MinGW-w64)
+- Windows SDK (for `d3d11.lib`, `dxgi.lib`, `user32.lib`, etc.)
+
+### Optional Tools
+- **Visual Studio Code** + C++ extension for editing
+- **MSYS2 / MinGW** environment for easy Windows builds
 
 ## Project Structure
 
@@ -49,19 +83,36 @@
 │   │   └── disasm.h
 │   ├── Mnemonics.h
 │   └── triple.h
-├── gui/
-│   ├── menu.cpp
-│   ├── menu.h
-│   ├── notification.h
-│   ├── pane.h
-│   └── tab.h
 ├── inject/
 │   ├── injector.cpp
 │   └── injector.h
+├── gui/
+│   ├── colours.h
+│   ├── menu.cpp
+│   ├── menu.h
+│   └── imgui/
+│       ├── imconfig.h
+│       ├── imgui.cpp
+│       ├── imgui.h
+│       ├── imgui_demo.cpp
+│       ├── imgui_draw.cpp
+│       ├── imgui_impl_dx11.cpp
+│       ├── imgui_impl_dx11.h
+│       ├── imgui_impl_win32.cpp
+│       ├── imgui_impl_win32.h
+│       ├── imgui_internal.h
+│       ├── imgui_tables.cpp
+│       ├── imgui_widgets.cpp
+│       ├── imstb_rectpack.h
+│       ├── imstb_textedit.h
+│       └── imstb_truetype.h
+├── .gitignore
+├── imgui.ini
 ├── LICENSE
 ├── main.cpp
 ├── main.h
-└── README.md
+├── README.md
+└── userconfig.cfg
 
 ```
 
@@ -72,25 +123,24 @@ Requires a C++17 compatible compiler.
 
 ```bash
 # Example build using MinGW-w64
-g++ -std=c++17 -g \
-    main.cpp \
-    gui/menu.cpp \
-    inject/injector.cpp \
-    disasm/dynAsm/disasm.cpp \
-    disasm/statAsm/disasm.cpp \
-    -o gauntlet.exe \
-    -static-libgcc -static-libstdc++
+g++ -std=c++17 -g main.cpp inject/injector.cpp disasm/dynAsm/disasm.cpp
+ disasm/statAsm/disasm.cpp gui/menu.cpp gui/imgui/imgui.cpp
+ gui/imgui/imgui_draw.cpp gui/imgui/imgui_widgets.cpp
+ gui/imgui/imgui_tables.cpp gui/imgui/imgui_demo.cpp gui/imgui/imgui_impl_dx11.cpp
+ gui/imgui/imgui_impl_win32.cpp -o gauntlet.exe -static-libgcc -static-libstdc++
+ -ld3d11 -ldxgi -ldxguid -ldinput8 -ld3dcompiler -ldwmapi -luser32 -lgdi32 -mwindows
 ```
 
 ### Run
 ```bash
-./gauntlet.exe -inj target.exe -sAsm binary.exe -dAsm process.exe
+./gauntlet.exe -inj target.exe -sAsm binary.exe -dAsm process.exe -m -nc
 ```
 
 - `-inj <exe>`: Inject DLL into a target process
 - `-sAsm <exe>`: Perform static disassembly on a PE binary
-- `-dAsm <exe>`: (Planned) Attach to and scan a running process
-
+- `-dAsm <exe>`: Attach to and scan a running process
+- `-m`: Will turn on GUI
+- `-nc`: Will not open up a console for the user. (it is bugged and will likely crash the program)
 ---
 
 ## Output
@@ -106,7 +156,6 @@ g++ -std=c++17 -g \
 - Live memory patching + write-back
 - Wildcard pattern matching for memory scanning
 - Opcode/mnemonic plugin support
-- Visualization UI for code flow
 - Signature/pattern scanning utilities
 - Lua support for modular extensions
 
