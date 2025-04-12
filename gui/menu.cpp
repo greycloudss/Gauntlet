@@ -11,7 +11,7 @@ namespace MENU {
     ASM::StatDisasm* sAsm;
     ASM::DynDisasm* dAsm;
 
-    volatile char selected_tab = 0;
+    volatile char selected_tab = 3;
 
     void renderColourPickers() { // feels weird and wrong to write this, at least out right doing what you need instead of a loop is faster
         ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::windowBg],                           (float*)&COLOUR::get(COLOUR::windowBg), 2);
@@ -29,11 +29,11 @@ namespace MENU {
         ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::titleBgCollapsed],                   (float*)&COLOUR::get(COLOUR::titleBgCollapsed));
         ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::text],                               (float*)&COLOUR::get(COLOUR::text));
         ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::separator],                          (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::Tab],                       (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabHovered],                (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabActive],                 (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocused],              (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocusedActive],        (float*)&COLOUR::get(COLOUR::separator));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::Tab],                                (float*)&COLOUR::get(COLOUR::separator));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabHovered],                         (float*)&COLOUR::get(COLOUR::separator));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabActive],                          (float*)&COLOUR::get(COLOUR::separator));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocused],                       (float*)&COLOUR::get(COLOUR::separator));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocusedActive],                 (float*)&COLOUR::get(COLOUR::separator));
 
 
         if (ImGui::Button("Apply Theme")) {
@@ -71,7 +71,18 @@ namespace MENU {
     }
 
     inline void statAsmItems() {
-        
+        if (!sAsm) return;
+    
+        std::lock_guard<std::mutex> lock(sAsm->toPrintMutex);
+        if (sAsm->toPrint.empty()) return;
+    
+        std::vector<const char*> cStrs;
+        cStrs.reserve(sAsm->toPrint.size());
+        for (const auto& str : sAsm->toPrint)
+            cStrs.push_back(str.c_str());
+    
+        static int current_item = 0;
+        ImGui::ListBox("Static Disasm", &current_item, cStrs.data(), (int)cStrs.size(), 30);
     }
 
     uintptr_t decodeAddress(const char* input) {
@@ -92,7 +103,6 @@ namespace MENU {
         "string",
         "uintptr_t"
     };
-    
     
     ValueType writeSelectedType = ValueType::Int;
     ValueType readSelectedType = ValueType::Int;
@@ -156,10 +166,10 @@ namespace MENU {
     }
 
     inline void dynAsmItems() {
+        if (!dAsm) return;
+
         static char addyW[1024] = {};
         static char valyW[1024] = {};
-
-        if (!dAsm) return;
 
         ImGui::Text("Write Process Memory");
         ImGui::InputText("Write Address", addyW, 1024, 0, (ImGuiInputTextCallback)__null, (void*)__null);
@@ -175,8 +185,7 @@ namespace MENU {
         ImGui::Text("Read Process Memory");
         ImGui::InputText("Read Address", addyR, 1024, 0, nullptr, nullptr);
         renderTypeSelector("Read Value Type", readSelectedType);
-        
-        // Show buffer BEFORE button
+
         ImGui::InputText("##readonly", resultBuf, sizeof(resultBuf), ImGuiInputTextFlags_ReadOnly);
         
         if (ImGui::Button("Read Memory") && !std::empty(addyR)) {
@@ -189,14 +198,20 @@ namespace MENU {
         
 
         static std::vector<const char*> cStrs;
-
+            
+        if (dAsm) {
+            std::vector<std::string> localPrint;
+            {
+                std::lock_guard<std::mutex> lock(dAsm->toPrintMutex);
+                localPrint = dAsm->toPrint;
+            }
+        }
         std::lock_guard<std::mutex> l(dAsm->toPrintMutex);
         size_t n = dAsm->toPrint.size();
         cStrs.resize(n);
         if (n) {
             const std::vector<std::string>& src = dAsm->toPrint;
-            for (size_t i = 0; i < n; ++i)
-                cStrs[i] = src[i].c_str();
+            for (size_t i = 0; i < n; ++i) cStrs[i] = src[i].c_str();
         }
         
         static int current_item = 0;
@@ -209,6 +224,8 @@ namespace MENU {
         if (ImGui::BeginTabBar("Tabs")) {
             if (ImGui::BeginTabItem("Static Disasm")) {
                 selected_tab = 0;
+
+                statAsmItems();
 
                 ImGui::EndTabItem();
             }
@@ -239,6 +256,7 @@ namespace MENU {
 
             ImGui::EndTabBar();
         }
+        std::cout.flush();
     }
 
     void setObjects(INJ::Injector* a, ASM::StatDisasm* b, ASM::DynDisasm* c) {
@@ -251,16 +269,12 @@ namespace MENU {
         ImGui::SetNextWindowPos(ImVec2(0, 0), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize, ImGuiCond_Always);
         ImGui::Begin("Gauntlet Menu", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
-        
-        std::vector<std::string> localPrint;
-        {
-            std::lock_guard<std::mutex> lock(dAsm->toPrintMutex);
-            localPrint = dAsm->toPrint;
-        }
+    
         tabs();
-        
+    
         ImGui::End();
     }
+    
 
     void CreateRenderTarget() {
         ID3D11Texture2D* pBackBuffer = nullptr;
@@ -369,7 +383,7 @@ namespace MENU {
         g_pd3dDeviceContext->Release();
         DestroyWindow(hwnd);
         UnregisterClassW(className, hInstance);
-        //std::exit(0);
+        std::exit(0);
         return 0;
     }
 }

@@ -24,6 +24,9 @@ namespace ASM {
             
             
         public:
+            std::vector<std::string> toPrint;
+            std::mutex toPrintMutex;
+
             StatDisasm(LPCSTR fName);
             void disassemble();
             std::vector<std::pair<byte, std::string>>* GetModTable(int val);

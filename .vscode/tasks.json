@@ -31,7 +31,8 @@
           "-ld3dcompiler",
           "-ldwmapi",
           "-luser32",
-          "-lgdi32"
+          "-lgdi32",
+          "-mwindows"
         ],
         "group": {
           "kind": "build",

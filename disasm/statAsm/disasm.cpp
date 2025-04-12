@@ -97,8 +97,14 @@ namespace ASM {
     }
 
     bool StatDisasm::printer(size_t& i, const std::string& operation, std::string firstArg, std::string secondArg) {
+        char formatted[128];
         std::cout << "CS:" << std::hex << i << "   " << operation << " " << firstArg << ", " << secondArg << "\n";
         ot << "CS:" << std::hex << i << "   " << operation << " " << firstArg << ", " << secondArg << "\n";
+
+        snprintf(formatted, sizeof(formatted), "CS:%x   %s %s, %s\n", i, operation.c_str(), firstArg.c_str(), secondArg.c_str());
+        std::lock_guard<std::mutex> lock(toPrintMutex);
+        toPrint.push_back(std::string(formatted));
+        
         return true;
     }
 
