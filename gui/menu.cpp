@@ -6,7 +6,7 @@ namespace MENU {
     ID3D11DeviceContext* g_pd3dDeviceContext = nullptr;
     IDXGISwapChain* g_pSwapChain = nullptr;
     ID3D11RenderTargetView* g_mainRenderTargetView = nullptr;
-;
+
     INJ::Injector* injector;
     ASM::StatDisasm* sAsm;
     ASM::DynDisasm* dAsm;
@@ -29,12 +29,11 @@ namespace MENU {
         ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::titleBgCollapsed],                   (float*)&COLOUR::get(COLOUR::titleBgCollapsed));
         ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::text],                               (float*)&COLOUR::get(COLOUR::text));
         ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::separator],                          (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::Tab],                                (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabHovered],                         (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabActive],                          (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocused],                       (float*)&COLOUR::get(COLOUR::separator));
-        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocusedActive],                 (float*)&COLOUR::get(COLOUR::separator));
-
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::Tab],                                (float*)&COLOUR::get(COLOUR::Tab));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabHovered],                         (float*)&COLOUR::get(COLOUR::TabHovered));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabActive],                          (float*)&COLOUR::get(COLOUR::TabActive));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocused],                       (float*)&COLOUR::get(COLOUR::TabUnfocused));
+        ImGui::ColorEdit4(COLOUR::themeColourNames[COLOUR::TabUnfocusedActive],                 (float*)&COLOUR::get(COLOUR::TabUnfocusedActive));
 
         if (ImGui::Button("Apply Theme")) {
             ImGuiStyle& style = ImGui::GetStyle();

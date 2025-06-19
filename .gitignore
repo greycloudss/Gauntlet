@@ -1,1 +1,4 @@
 *.exe
+*.txt
+*.code-workspace
+*.json
