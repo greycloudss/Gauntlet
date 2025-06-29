@@ -215,4 +215,9 @@ namespace ASM {
         std::cout << "[Static Disasm] [Info] Disassembled instruction count: " << count << std::endl;
         ot.close();
     }
+    
+
+    void StatDisasm::setFname(LPCSTR fName) {
+        this->fName = fName;
+    }
 }

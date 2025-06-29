@@ -27,9 +27,19 @@ namespace ASM {
             std::vector<std::string> toPrint;
             std::mutex toPrintMutex;
 
+            StatDisasm() = default;
+            
+            void setFname(LPCSTR fName);
+
             StatDisasm(LPCSTR fName);
             void disassemble();
             std::vector<std::pair<byte, std::string>>* GetModTable(int val);
-            ~StatDisasm();
+            
+            ~StatDisasm() {
+                if (ot.is_open()) ot.close();
+                binary.clear();
+                binary.shrink_to_fit();
+                fName = NULL;
+            }
     };
 };

@@ -29,6 +29,14 @@ namespace INJ {
             return 0;
         }
 
+        void Injector::setDLL(const char* dllName) {
+            this->dllName = dllName;
+        }
+
+        void Injector::setProcessName(const char* pName) {
+            this->processName = pName;
+        }
+
         int Injector::inject() {
             PID = getPid();
             if (!PID) return injectorResponse = printErr(1);

@@ -181,7 +181,7 @@ namespace ASM {
         return writesOutput;
     }
 
-    DynDisasm::~DynDisasm() {
-
+    void DynDisasm::setPName(LPCSTR process) {
+        this->process = process;
     }
 };

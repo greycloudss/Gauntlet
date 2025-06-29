@@ -145,5 +145,7 @@ namespace COLOUR {
             const ImVec4& col = COLOUR::get(static_cast<COLOUR::ThemeColour>(i));
             output << col.x << ' ' << col.y << ' ' << col.z << ' ' << col.w << '\n';
         }
+
+        output.close();
     }
 };

@@ -23,7 +23,15 @@ namespace ASM {
             std::vector<std::string> toPrint;
             std::mutex toPrintMutex;
 
+            DynDisasm() = default;
+
             inline void scan() {
+                if (!pHandle) {
+                    getPid();
+        
+                    pHandle = OpenProcess(PROCESS_VM_WRITE | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_QUERY_INFORMATION | PROCESS_CREATE_THREAD, FALSE, pid);
+                }
+
                 SYSTEM_INFO sysInfo;
                 GetSystemInfo(&sysInfo);
         
@@ -89,6 +97,16 @@ namespace ASM {
             bool decastPtr(triple<uintptr_t, void*, TypeE>& trpl);
             std::vector<bool> wpm(std::vector<triple<uintptr_t, void*, TypeE>> writes);
 
-            ~DynDisasm();
+            void setPName(LPCSTR process);  
+
+            ~DynDisasm() {
+                process = NULL;
+                pHandle = NULL;
+
+                pid = {};
+
+                toPrint.clear();
+                toPrint.shrink_to_fit();
+            }
     };
 };

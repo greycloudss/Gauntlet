@@ -7,30 +7,12 @@
 #include <vector>
 #include <windows.h>
 #include <stdio.h>
+#include "util/threads.h"
 
 namespace MAIN {
-    INJ::Injector* injector = nullptr;
-    ASM::StatDisasm* sAsm = nullptr;
-    ASM::DynDisasm* dAsm = nullptr;
-
-    DWORD WINAPI statScanThread(LPVOID params) {
-        sAsm->disassemble();
-        return 0;
-    }
-
-    DWORD WINAPI dynScanThread(LPVOID params) {
-        do {
-            dAsm->scan();
-            Sleep(10000);
-        } while (true);
-        return 0;
-    }
-
-    DWORD WINAPI injectionThread(LPVOID params) {
-        std::cout << injector->inject();
-        return 0;
-    }
-
+    INJ::Injector* injector = new INJ::Injector();
+    ASM::StatDisasm* sAsm = new ASM::StatDisasm();
+    ASM::DynDisasm* dAsm = new ASM::DynDisasm();
 
     /* ((std::vector<LPCSTR>*)params)->at(0) looks nasty but for now itll do as a placeholder */
 
@@ -92,18 +74,21 @@ namespace MAIN {
                 if (!noConsole) OpenDebugConsole();
 
                 if (injArgs->size() != 0) {
+                    delete injector;
                     injector = new INJ::Injector(injArgs->at(0));
-                    iHandle = CreateThread(NULL, 0, injectionThread, (LPVOID)injArgs, 0, NULL);
+                    iHandle = CreateThread(NULL, 0, injectionThread, (LPVOID)injector, 0, NULL);
                 }
             
                 if (statArgs->size() != 0) {
+                    delete sAsm;
                     sAsm = new ASM::StatDisasm(statArgs->at(0));
-                    sHandle = CreateThread(NULL, 0, statScanThread, NULL, 0, NULL);
+                    sHandle = CreateThread(NULL, 0, statScanThread, (LPVOID)dAsm, 0, NULL);
                 }
             
                 if (dynArgs->size() != 0) {
+                    delete dAsm;
                     dAsm = new ASM::DynDisasm(dynArgs->at(0));
-                    dHandle = CreateThread(NULL, 0, dynScanThread, NULL, 0, NULL);
+                    dHandle = CreateThread(NULL, 0, dynScanThread, (LPVOID)dAsm, 0, NULL);
                 }
                 
                 if (menuMode) {

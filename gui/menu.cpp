@@ -1,5 +1,30 @@
 #include "menu.h"
 #include "colours.h"
+#include "..\util\util.h"
+
+namespace TEMP {
+        //to avoid circular inclusions, temporary
+    DWORD WINAPI statScanThread(LPVOID params) {
+        ASM::StatDisasm* sAsm = (ASM::StatDisasm*) params;
+        sAsm->disassemble();
+        return 0;
+    }
+
+    DWORD WINAPI dynScanThread(LPVOID params) {
+        ASM::DynDisasm* dAsm = (ASM::DynDisasm*) params;
+        do {
+            dAsm->scan();
+            Sleep(10000);
+        } while (true);
+        return 0;
+    }
+
+    DWORD WINAPI injectionThread(LPVOID params) {
+        INJ::Injector* injector = (INJ::Injector*) params;
+        std::cout << injector->inject();
+        return 0;
+    }
+};
 
 namespace MENU {
     ID3D11Device* g_pd3dDevice = nullptr;
@@ -66,11 +91,23 @@ namespace MENU {
     }
 
     inline void injectorItems() {
-        
+        if (!injector) injector = new INJ::Injector(); 
+
+        static char pName[256] = {};
+        static char dName[256] = {};
+
+        ImGui::InputText("Process Name", pName, 256);
+        ImGui::InputText("Library Name", dName, 256);
+
+        if (length(pName) > 4 && length(dName) > 4 && ImGui::Button("Inject")) {
+            injector->setDLL(dName);
+            injector->setProcessName(pName);
+            CreateThread(NULL, 0, TEMP::injectionThread, (LPVOID)injector, 0, NULL);
+        }
     }
 
     inline void statAsmItems() {
-        if (!sAsm) return;
+        if (!sAsm) sAsm = new ASM::StatDisasm();
     
         std::lock_guard<std::mutex> lock(sAsm->toPrintMutex);
         if (sAsm->toPrint.empty()) return;
@@ -167,6 +204,15 @@ namespace MENU {
     inline void dynAsmItems() {
         if (!dAsm) return;
 
+        static char pName[256] = {};
+
+        ImGui::InputText("Process Name", pName, 256);
+        
+        if (ImGui::Button("Scan") && length(pName) > 4) {
+            dAsm->setPName(pName);
+            CreateThread(NULL, 0, TEMP::dynScanThread, (LPVOID)dAsm, 0, NULL);
+        }
+
         static char addyW[1024] = {};
         static char valyW[1024] = {};
 
@@ -240,6 +286,8 @@ namespace MENU {
             if (ImGui::BeginTabItem("Injector")) {
                 selected_tab = 2;
 
+                injectorItems();
+                
                 ImGui::EndTabItem();
             }
 
