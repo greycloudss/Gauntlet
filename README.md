@@ -2,8 +2,8 @@
 
 **Gauntlet** is a C++ reverse engineering utility that supports both static and dynamic disassembly, along with DLL injection into external processes. Built for modularity and performance, it provides core building blocks for memory manipulation, opcode decoding, and instruction tracing.
 
-> **Note:** This project is a work in progress and under active development.
-
+> Part of the **Armourer** series of projects.  
+> **Work in Progress**
 ---
 ## Features
 
